@@ -1,0 +1,11 @@
+[
+  {
+    "listing": "/index.html",
+    "items": [
+      "/reports/data_pipeline.html",
+      "/reports/mofa.html",
+      "/reports/mofa_pca_analisis.html",
+      "/reports/pca.html"
+    ]
+  }
+]

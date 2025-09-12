@@ -1,0 +1,7 @@
+---
+title: "Integración de datos “ómicos” del océano costero chileno con la ayuda de aprendizaje de máquinas"
+listing:
+  contents: reports
+  sort: "date desc"
+  type: default
+---

@@ -1,0 +1,313 @@
+---
+title: MOFA & PCA analisis
+format: html
+jupyter: python3
+---
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import mofax as mofa
+import numpy as np
+```
+
+## PCA análisis
+
+```{python}
+data_dir = "../data/"
+pca_transformed = pd.read_csv(data_dir + "M_pca.csv", index_col=0)
+```
+
+```{python}
+plt.figure(figsize=(10, 7))
+scatter = plt.scatter(
+    pca_transformed["PCA1"],
+    pca_transformed["PCA2"],
+    c=pca_transformed["PCA3"],
+    cmap="viridis",
+    s=20,
+)
+plt.xlabel("PCA 1")
+plt.ylabel("PCA 2")
+plt.title("PCA 2D")
+plt.colorbar(scatter, label="PCA 3")
+plt.grid()
+plt.show()
+```
+
+## MOFA analisis
+
+```{python}
+Z_df = pd.read_csv(data_dir + "M_factors.csv", index_col=0)
+variance_explained_pivot = pd.read_csv(
+    data_dir + "M_variance_explained.csv", index_col=0
+)
+df_W_biogeochemical_genes = pd.read_csv(
+    data_dir + "W_biogeochemical_genes.csv", index_col=0
+)
+df_W_metabolic_genes = pd.read_csv(data_dir + "W_metabolic_genes.csv", index_col=0)
+df_W_Taxa_order = pd.read_csv(data_dir + "W_Taxa_order.csv", index_col=0)
+df_W_Taxa_phylum = pd.read_csv(data_dir + "W_Taxa_phylum.csv", index_col=0)
+```
+
+```{python}
+plt.figure(figsize=(10, 6))
+scatter = plt.scatter(
+    Z_df["Factor_2"], Z_df["Factor_1"], c=Z_df["Factor_3"], cmap="viridis", s=20
+)
+plt.title("MOFA Factors")
+plt.xlabel("Factor 2")
+plt.ylabel("Factor 1")
+plt.colorbar(scatter, label="Factor 3")
+plt.grid()
+plt.show()
+```
+
+```{python}
+fig, axs = plt.subplots(1, 2, figsize=(18, 7))
+
+scatter1 = axs[0].scatter(
+    Z_df["Factor_1"], Z_df["Factor_2"], c=Z_df["Factor_3"], cmap="viridis", s=20
+)
+axs[0].set_title("MOFA Factors")
+axs[0].set_xlabel("Factor 1")
+axs[0].set_ylabel("Factor 2")
+fig.colorbar(scatter1, ax=axs[0], label="Factor 3")
+axs[0].grid()
+
+scatter2 = axs[1].scatter(
+    pca_transformed["PCA1"],
+    pca_transformed["PCA2"],
+    c=pca_transformed["PCA3"],
+    cmap="viridis",
+    s=20,
+)
+axs[1].set_title("PCA Components")
+axs[1].set_xlabel("PCA 1")
+axs[1].set_ylabel("PCA 2")
+fig.colorbar(scatter2, ax=axs[1], label="PCA 3")
+axs[1].grid()
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+fig, axs = plt.subplots(1, 2, figsize=(18, 7))
+
+scatter1 = axs[0].scatter(
+    Z_df["Factor_2"], Z_df["Factor_1"], c=Z_df["Factor_3"], cmap="viridis", s=20
+)
+axs[0].set_title("MOFA Factors")
+axs[0].set_xlabel("Factor 2")
+axs[0].set_ylabel("Factor 1")
+fig.colorbar(scatter1, ax=axs[0], label="Factor 3")
+axs[0].grid()
+
+scatter2 = axs[1].scatter(
+    pca_transformed["PCA1"],
+    pca_transformed["PCA2"],
+    c=pca_transformed["PCA3"],
+    cmap="viridis",
+    s=20,
+)
+axs[1].set_title("PCA Components")
+axs[1].set_xlabel("PCA 1")
+axs[1].set_ylabel("PCA 2")
+fig.colorbar(scatter2, ax=axs[1], label="PCA 3")
+axs[1].grid()
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+plt.figure(figsize=(10, 6))
+plt.imshow(variance_explained_pivot, aspect="auto", cmap="Blues")
+plt.xticks(
+    ticks=range(len(variance_explained_pivot.columns)),
+    labels=variance_explained_pivot.columns,
+    rotation=45,
+)
+plt.yticks(
+    ticks=range(len(variance_explained_pivot.index)),
+    labels=variance_explained_pivot.index,
+)
+plt.colorbar(label="R2 (%)")
+plt.title("Variance Explained per Factor and View")
+plt.tight_layout()
+```
+
+```{python}
+fig, axs = plt.subplots(10, 1, figsize=(18, 26), sharex=True)
+feature_tables = []
+
+for i in range(10):
+    factor = f"Factor_{i + 1}"
+    weights = df_W_biogeochemical_genes[factor]
+    axs[i].plot(weights.values, label=factor, alpha=0.7, linewidth=2)
+    top_idx = weights.abs().nlargest(10).index
+    top_pos = [df_W_biogeochemical_genes.index.get_loc(idx) for idx in top_idx]
+    axs[i].scatter(top_pos, weights.loc[top_idx].values, color="red", s=50, zorder=3)
+    for pos, idx in zip(top_pos, top_idx):
+        axs[i].text(
+            pos,
+            weights.loc[idx],
+            str(pos),  # Muestra el número de feature
+            color="black",
+            fontsize=12,
+            ha="right",
+            va="bottom",
+            rotation=45,
+        )
+    # Guarda la tabla de asociación para este factor
+    feature_tables.append(
+        pd.DataFrame({"Feature_number": top_pos, "Feature_name": top_idx})
+    )
+    axs[i].set_title(f"Features weights in biogeochemical_genes - {factor}")
+    axs[i].set_ylabel("Weight")
+    axs[i].legend(loc="upper right")
+    axs[i].set_xticks([])
+    axs[i].set_ylim(
+        weights.min() * (1.8),
+        weights.max() * (1.8),
+    )
+    axs[i].grid()
+plt.tight_layout()
+plt.show()
+
+for i, table in enumerate(feature_tables):
+    print(f"\nTabla de asociación para {f'Factor_{i + 1}'}:")
+    display(table)
+```
+
+```{python}
+fig, axs = plt.subplots(10, 1, figsize=(18, 26), sharex=True)
+feature_tables = []
+
+for i in range(10):
+    factor = f"Factor_{i + 1}"
+    weights = df_W_metabolic_genes[factor]
+    top_idx = weights.abs().nlargest(10).index
+    top_pos = [df_W_metabolic_genes.index.get_loc(idx) for idx in top_idx]
+    axs[i].plot(weights.values, label=factor, alpha=0.7, linewidth=2)
+    axs[i].scatter(top_pos, weights.loc[top_idx].values, color="red", s=50, zorder=3)
+    for pos, idx in zip(top_pos, top_idx):
+        axs[i].text(
+            pos,
+            weights.loc[idx],
+            str(pos),
+            color="black",
+            fontsize=12,
+            ha="right",
+            va="bottom",
+            rotation=45,
+        )
+    feature_tables.append(
+        pd.DataFrame({"Feature_number": top_pos, "Feature_name": top_idx})
+    )
+    axs[i].set_title(f"Features weights in metabolic_genes - {factor}")
+    axs[i].set_ylabel("Weight")
+    axs[i].legend(loc="upper right")
+    axs[i].set_xticks([])
+    axs[i].set_ylim(
+        weights.min() * (1.8),
+        weights.max() * (1.8),
+    )
+    axs[i].grid()
+plt.tight_layout()
+plt.show()
+
+for i, table in enumerate(feature_tables):
+    print(f"\nTabla de asociación para {f'Factor_{i + 1}'}:")
+    display(table)
+```
+
+```{python}
+fig, axs = plt.subplots(10, 1, figsize=(18, 26), sharex=True)
+feature_tables = []
+
+for i in range(10):
+    factor = f"Factor_{i + 1}"
+    weights = df_W_Taxa_order[factor]
+    top_idx = weights.abs().nlargest(10).index
+    top_pos = [df_W_Taxa_order.index.get_loc(idx) for idx in top_idx]
+    axs[i].plot(weights.values, label=factor, alpha=0.7, linewidth=2)
+    axs[i].scatter(top_pos, weights.loc[top_idx].values, color="red", s=50, zorder=3)
+    for pos, idx in zip(top_pos, top_idx):
+        axs[i].text(
+            pos,
+            weights.loc[idx],
+            str(pos),  # Muestra el número de feature
+            color="black",
+            fontsize=12,
+            ha="right",
+            va="bottom",
+            rotation=45,
+        )
+    # Guarda la tabla de asociación para este factor
+    feature_tables.append(
+        pd.DataFrame({"Feature_number": top_pos, "Feature_name": top_idx})
+    )
+    axs[i].set_title(f"Features weights in taxa_order - {factor}")
+    axs[i].set_ylabel("Weight")
+    axs[i].legend(loc="upper right")
+    axs[i].set_xticks([])
+    axs[i].set_ylim(
+        weights.min() * (1.8),
+        weights.max() * (1.8),
+    )
+    axs[i].grid()
+plt.tight_layout()
+plt.show()
+
+for i, table in enumerate(feature_tables):
+    print(f"\nTabla de asociación para {f'Factor_{i + 1}'}:")
+    display(table)
+```
+
+```{python}
+fig, axs = plt.subplots(10, 1, figsize=(18, 26), sharex=True)
+feature_tables = []
+
+for i in range(10):
+    factor = f"Factor_{i + 1}"
+    weights = df_W_Taxa_phylum[factor]
+    top_idx = weights.abs().nlargest(10).index
+    top_pos = [df_W_Taxa_phylum.index.get_loc(idx) for idx in top_idx]
+    axs[i].plot(weights.values, label=factor, alpha=0.7, linewidth=2)
+    axs[i].scatter(top_pos, weights.loc[top_idx].values, color="red", s=50, zorder=3)
+    for pos, idx in zip(top_pos, top_idx):
+        axs[i].text(
+            pos,
+            weights.loc[idx],
+            str(pos),
+            color="black",
+            fontsize=12,
+            ha="right",
+            va="bottom",
+            rotation=45,
+        )
+    feature_tables.append(
+        pd.DataFrame({"Feature_number": top_pos, "Feature_name": top_idx})
+    )
+    axs[i].set_title(f"Features weights in taxa_phylum - {factor}")
+    axs[i].set_ylabel("Weight")
+    axs[i].legend(loc="upper right")
+    axs[i].set_xticks([])
+    axs[i].set_ylim(
+        weights.min() * (1.8),
+        weights.max() * (1.8),
+    )
+    axs[i].grid()
+plt.tight_layout()
+plt.show()
+
+for i, table in enumerate(feature_tables):
+    print(f"\nTabla de asociación para {f'Factor_{i + 1}'}:")
+    display(table)
+```
+
+___
+

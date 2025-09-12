@@ -1,0 +1,69 @@
+---
+title: Data pipeline
+jupyter: 
+  kernelspec:
+    name: "MOFA"
+    language: "python"
+    display_name: "MOFA"
+---
+
+```{python}
+import pandas as pd
+```
+
+```{python}
+data_dir = "../data/"
+M_biogeochemical_genes_raw_pd = pd.read_csv(
+    f"{data_dir}{'M_biogeochemical_genes_raw'}.tsv", sep="\t", index_col="TSC"
+)
+M_metabolic_genes_raw_pd = pd.read_csv(
+    f"{data_dir}{'M_metabolic_genes_raw'}.tsv", sep="\t", index_col="TSC"
+)
+M_Taxa_order_pd = pd.read_csv(
+    f"{data_dir}{'Matriz_Taxa-order'}.tsv", sep="\t", index_col="Taxonomy"
+).T
+M_Taxa_phylum_pd = pd.read_csv(
+    f"{data_dir}{'Matriz_Taxa-phylum'}.tsv", sep="\t", index_col="Taxonomy"
+).T
+M_all = pd.concat(
+    [
+        M_biogeochemical_genes_raw_pd,
+        M_metabolic_genes_raw_pd,
+        M_Taxa_order_pd,
+        M_Taxa_phylum_pd,
+    ],
+    axis=1,
+    join="inner",
+)
+```
+
+```{python}
+print("Shape: ", str(M_all.shape))
+M_all.to_csv(f"{data_dir}M_all.csv")
+M_all.head(3)
+```
+
+```{python}
+print("Biogeochemical genes shape: ", str(M_biogeochemical_genes_raw_pd.shape))
+M_biogeochemical_genes_raw_pd.to_csv(f"{data_dir}M_biogeochemical_genes.csv")
+M_biogeochemical_genes_raw_pd.head(3)
+```
+
+```{python}
+print("Metabolic genes shape: ", str(M_metabolic_genes_raw_pd.shape))
+M_metabolic_genes_raw_pd.to_csv(f"{data_dir}M_metabolic_genes.csv")
+M_metabolic_genes_raw_pd.head(3)
+```
+
+```{python}
+print("Taxa order shape: ", str(M_Taxa_order_pd.shape))
+M_Taxa_order_pd.to_csv(f"{data_dir}M_Taxa_order.csv")
+M_Taxa_order_pd.head(3)
+```
+
+```{python}
+print("Metabolic genes shape: ", str(M_metabolic_genes_raw_pd.shape))
+M_metabolic_genes_raw_pd.to_csv(f"{data_dir}M_metabolic_genes.csv")
+M_metabolic_genes_raw_pd.head(3)
+```
+

@@ -1,0 +1,136 @@
+---
+title: MOFA
+format: html
+jupyter: python3
+---
+
+
+```{python}
+import pandas as pd
+import scanpy as sc
+import muon as mu
+import mofax as mofa
+import matplotlib.pyplot as plt
+```
+
+```{python}
+data_dir = "../data/"
+M_biogeochemical_genes = sc.AnnData(
+    pd.read_csv(f"{data_dir}M_biogeochemical_genes.csv", index_col=0)
+)
+M_metabolic_genes = sc.AnnData(
+    pd.read_csv(f"{data_dir}M_metabolic_genes.csv", index_col=0)
+)
+M_Taxa_order = sc.AnnData(pd.read_csv(f"{data_dir}M_Taxa_order.csv", index_col=0))
+M_Taxa_phylum = sc.AnnData(pd.read_csv(f"{data_dir}M_Taxa_phylum.csv", index_col=0))
+mdata = mu.MuData(
+    {
+        "biogeochemical_genes": M_biogeochemical_genes,
+        "metabolic_genes": M_metabolic_genes,
+        "Taxa_order": M_Taxa_order,
+        "Taxa_phylum": M_Taxa_phylum,
+    }
+)
+mdata
+```
+
+```{python}
+model_dir = "../models/"
+mu.tl.mofa(
+    mdata,
+    use_obs="union",
+    n_factors=15,
+    convergence_mode="medium",
+    outfile=f"{model_dir}mofa_model.hdf5",
+)
+```
+
+```{python}
+model = mofa.mofa_model(f"{model_dir}mofa_model.hdf5")
+```
+
+```{python}
+Z = model.get_factors()
+Z_df = pd.DataFrame(Z)
+Z_df.columns = [f"Factor_{i + 1}" for i in range(Z_df.shape[1])]
+Z_df.index = mdata.obs_names
+Z_df.to_csv(f"{data_dir}M_factors.csv")
+Z_df.head(3)
+```
+
+```{python}
+variance_explained = model.get_r2()
+variance_explained.drop(columns=["Group"], inplace=True)
+variance_explained["Factor"] = variance_explained["Factor"].str.replace(
+    r"Factor(\d{1})$", r"Factor0\1", regex=True
+)
+variance_explained_pivot = variance_explained.pivot(
+    index="Factor", columns="View", values="R2"
+)
+variance_explained_pivot.to_csv(f"{data_dir}M_variance_explained.csv")
+variance_explained_pivot
+```
+
+```{python}
+plt.figure(figsize=(10, 6))
+plt.imshow(variance_explained_pivot, aspect="auto", cmap="Blues")
+plt.xticks(
+    ticks=range(len(variance_explained_pivot.columns)),
+    labels=variance_explained_pivot.columns,
+    rotation=45,
+)
+plt.yticks(
+    ticks=range(len(variance_explained_pivot.index)),
+    labels=variance_explained_pivot.index,
+)
+plt.colorbar(label="R2 (%)")
+plt.title("Variance Explained per Factor and View")
+plt.tight_layout()
+```
+
+```{python}
+W = model.get_weights()
+
+n_bio = M_biogeochemical_genes.n_vars
+n_met = M_metabolic_genes.n_vars
+n_order = M_Taxa_order.n_vars
+n_phylum = M_Taxa_phylum.n_vars
+
+idx_bio = slice(0, n_bio)
+idx_met = slice(n_bio, n_bio + n_met)
+idx_order = slice(n_bio + n_met, n_bio + n_met + n_order)
+idx_phylum = slice(n_bio + n_met + n_order, n_bio + n_met + n_order + n_phylum)
+
+W_bio = W[idx_bio, :]
+W_met = W[idx_met, :]
+W_order = W[idx_order, :]
+W_phylum = W[idx_phylum, :]
+
+df_W_biogeochemical_genes = pd.DataFrame(
+    W_bio,
+    index=M_biogeochemical_genes.var_names,
+    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+)
+df_W_biogeochemical_genes.to_csv(f"{data_dir}W_biogeochemical_genes.csv")
+df_W_metabolic_genes = pd.DataFrame(
+    W_met,
+    index=M_metabolic_genes.var_names,
+    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+)
+df_W_metabolic_genes.to_csv(f"{data_dir}W_metabolic_genes.csv")
+df_W_Taxa_order = pd.DataFrame(
+    W_order,
+    index=M_Taxa_order.var_names,
+    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+)
+df_W_Taxa_order.to_csv(f"{data_dir}W_Taxa_order.csv")
+df_W_Taxa_phylum = pd.DataFrame(
+    W_phylum,
+    index=M_Taxa_phylum.var_names,
+    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+)
+df_W_Taxa_phylum.to_csv(f"{data_dir}W_Taxa_phylum.csv")
+```
+
+___
+

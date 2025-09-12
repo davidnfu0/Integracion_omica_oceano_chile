@@ -1,0 +1,16 @@
+project:
+  type: website
+  render:
+    - index.qmd
+    - reports/**/*.qmd
+  output-dir: docs
+
+website:
+  title: "Proyecto"
+
+format:
+  html: default
+
+execute:
+  kernel: MOFA      
+
