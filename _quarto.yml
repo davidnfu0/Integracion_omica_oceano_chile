@@ -2,14 +2,19 @@ project:
   type: website
   render:
     - index.qmd
-    - reports/**/*.qmd
+    - reports/data_pipeline.qmd
+    - reports/pca.qmd
+    - reports/mofa.qmd
+    - reports/mofa_pca_analysis.qmd
   output-dir: docs
 
 website:
   title: "Proyecto"
 
 format:
-  html: default
+  html:
+    embed-resources: true  
+    fig-format: svg
 
 execute:
   kernel: MOFA      

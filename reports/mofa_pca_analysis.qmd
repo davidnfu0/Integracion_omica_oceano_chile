@@ -1,6 +1,5 @@
 ---
-title: MOFA & PCA analisis
-format: html
+title: MOFA & PCA analysis
 jupyter: python3
 ---
 
@@ -12,7 +11,7 @@ import mofax as mofa
 import numpy as np
 ```
 
-## PCA análisis
+## PCA analysis
 
 ```{python}
 data_dir = "../data/"
@@ -36,7 +35,7 @@ plt.grid()
 plt.show()
 ```
 
-## MOFA analisis
+## MOFA analysis
 
 ```{python}
 Z_df = pd.read_csv(data_dir + "M_factors.csv", index_col=0)

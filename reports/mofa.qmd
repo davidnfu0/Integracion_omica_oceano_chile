@@ -11,6 +11,7 @@ import scanpy as sc
 import muon as mu
 import mofax as mofa
 import matplotlib.pyplot as plt
+import os
 ```
 
 ```{python}
@@ -35,14 +36,15 @@ mdata
 ```
 
 ```{python}
-model_dir = "../models/"
-mu.tl.mofa(
-    mdata,
-    use_obs="union",
-    n_factors=15,
-    convergence_mode="medium",
-    outfile=f"{model_dir}mofa_model.hdf5",
-)
+model_path = f"{model_dir}mofa_model.hdf5"
+if not os.path.exists(model_path):
+    mu.tl.mofa(
+        mdata,
+        use_obs="union",
+        n_factors=15,
+        convergence_mode="medium",
+        outfile=model_path,
+    )
 ```
 
 ```{python}

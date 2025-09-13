@@ -1,11 +1,9 @@
 ---
 title: Data pipeline
-jupyter: 
-  kernelspec:
-    name: "MOFA"
-    language: "python"
-    display_name: "MOFA"
+format: html
+jupyter: python3
 ---
+
 
 ```{python}
 import pandas as pd
@@ -62,8 +60,8 @@ M_Taxa_order_pd.head(3)
 ```
 
 ```{python}
-print("Metabolic genes shape: ", str(M_metabolic_genes_raw_pd.shape))
-M_metabolic_genes_raw_pd.to_csv(f"{data_dir}M_metabolic_genes.csv")
-M_metabolic_genes_raw_pd.head(3)
+print("Taxa phylum shape: ", str(M_Taxa_phylum_pd.shape))
+M_Taxa_phylum_pd.to_csv(f"{data_dir}M_Taxa_phylum.csv")
+M_Taxa_phylum_pd.head(3)
 ```
 
