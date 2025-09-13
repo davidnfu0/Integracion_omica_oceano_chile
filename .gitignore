@@ -48,32 +48,6 @@ __pycache__/
 *.ipr
 *.iws
 
-# Media files outside resources folder
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.bmp
-*.tiff
-*.mp4
-*.mp3
-*.wav
-*.flac
-*.avi
-*.mov
-!resources/**/*.jpg
-!resources/**/*.jpeg
-!resources/**/*.png
-!resources/**/*.gif
-!resources/**/*.bmp
-!resources/**/*.tiff
-!resources/**/*.mp4
-!resources/**/*.mp3
-!resources/**/*.wav
-!resources/**/*.flac
-!resources/**/*.avi
-!resources/**/*.mov
-
 # Virtual environments
 venv/
 env/

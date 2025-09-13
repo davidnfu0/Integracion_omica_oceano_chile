@@ -1,7 +1,10 @@
 ---
 title: MOFA
-format: html
-jupyter: python3
+jupyter: 
+  kernelspec:
+    name: "MOFA"
+    language: "python"
+    display_name: "MOFA"
 ---
 
 
@@ -36,6 +39,7 @@ mdata
 ```
 
 ```{python}
+model_dir = "../models/"
 model_path = f"{model_dir}mofa_model.hdf5"
 if not os.path.exists(model_path):
     mu.tl.mofa(

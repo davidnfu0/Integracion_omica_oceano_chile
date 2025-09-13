@@ -1,6 +1,10 @@
 ---
 title: MOFA & PCA analysis
-jupyter: python3
+jupyter: 
+  kernelspec:
+    name: "MOFA"
+    language: "python"
+    display_name: "MOFA"
 ---
 
 
