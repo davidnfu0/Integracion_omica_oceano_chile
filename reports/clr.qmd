@@ -1,0 +1,110 @@
+---
+title: CLR Transformation
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+En este informe, se detalla el proceso de transformación CLR (Centered Log-Ratio) aplicado a las multiples matrices ómicas.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import numpy as np
+import src.data_utils as du
+import src.data_normalization as dn
+```
+
+Definir el directorio de datos procesados y cargar las matrices ómicas.
+```{python}
+DATA_PROCESSED_DIR = "../data/processed_data/"
+M_biogeochemical_genes_pd = du.load_data(
+    DATA_PROCESSED_DIR + "M_biogeochemical_genes", index_col=0
+)
+M_metabolic_genes_pd = du.load_data(
+    DATA_PROCESSED_DIR + "M_metabolic_genes", index_col=0
+)
+M_taxa_order_pd = du.load_data(DATA_PROCESSED_DIR + "M_taxa_order", index_col=0)
+M_taxa_phylum_pd = du.load_data(DATA_PROCESSED_DIR + "M_taxa_phylum", index_col=0)
+```
+
+Explorar ordenes de las matrices cargadas.
+```{python}
+M_biogeochemical_genes_pd.head(5)
+```
+
+```{python}
+M_metabolic_genes_pd.head(5)
+```
+
+```{python}
+M_taxa_order_pd.head(5)
+```
+
+```{python}
+M_taxa_phylum_pd.head(5)
+```
+
+Aplicar la transformación CLR a cada una de las matrices ómicas.
+```{python}
+M_biogeochemical_genes_clr_pd = dn.clr_transform(
+    M_biogeochemical_genes_pd, min_prevalence=0.01, min_variance=1e-4
+)[0]
+M_metabolic_genes_clr_pd = dn.clr_transform(
+    M_metabolic_genes_pd, min_prevalence=0.01, min_variance=1e-4
+)[0]
+M_taxa_order_clr_pd = dn.clr_transform(
+    M_taxa_order_pd, min_prevalence=1e-8, min_variance=1e-8
+)[0]
+M_taxa_phylum_clr_pd = dn.clr_transform(
+    M_taxa_phylum_pd, min_prevalence=1e-8, min_variance=1e-8
+)[0]
+```
+
+Explorar las matrices transformadas.
+```{python}
+M_biogeochemical_genes_clr_pd.head(5)
+```
+
+```{python}
+M_metabolic_genes_clr_pd.head(5)
+```
+
+```{python}
+M_taxa_order_clr_pd.head(5)
+```
+
+```{python}
+M_taxa_phylum_clr_pd.head(5)
+```
+
+Agregar las matrices transformadas en un solo DataFrame.
+```{python}
+M_clr = du.concat_dataframes(
+        M_biogeochemical_genes_clr_pd,
+        M_metabolic_genes_clr_pd,
+        M_taxa_order_clr_pd,
+        M_taxa_phylum_clr_pd,
+)
+```
+
+Guardar todas las matrices transformadas y la matriz agregada en archivos CSV.
+```{python}
+CLR_DATA_DIR = "../data/clr_data/"
+du.save_data(M_biogeochemical_genes_clr_pd, CLR_DATA_DIR + "M_biogeochemical_genes_clr")
+du.save_data(M_metabolic_genes_clr_pd, CLR_DATA_DIR + "M_metabolic_genes_clr")
+du.save_data(M_taxa_order_clr_pd, CLR_DATA_DIR + "M_taxa_order_clr")
+du.save_data(M_taxa_phylum_clr_pd, CLR_DATA_DIR + "M_taxa_phylum_clr")
+du.save_data(M_clr, CLR_DATA_DIR + "M_clr")
+```
+
+---

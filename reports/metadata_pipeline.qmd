@@ -1,0 +1,220 @@
+---
+title: Metadata Pipeline
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+En este informe, se detalla el proceso de carga y análisis inicial de los conjuntos de metadatos utilizados en el proyecto.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import src.data_utils as du
+```
+
+Definir los nombres de los archivos de metadatos, su columna de índices y su extensión.
+```{python}
+METADATA_RAW_DIR = "raw_metadata/"
+
+metadata_cast_BGC_file_name = METADATA_RAW_DIR + "Metadata_cast_BGC_raw"
+index_col = None
+metadata_cast_BGC_file_extension = "csv"
+
+metadata_geographic_coordinates_file_name = (
+    METADATA_RAW_DIR + "Metadata_geographic_coordinates_raw"
+)
+index_col = None
+metadata_environmental_file_extension = "csv"
+```
+
+Cargar los metadatos en dataframes de pandas.
+```{python}
+Metadata_cast_BGC_raw_pd = du.load_data(
+    metadata_cast_BGC_file_name,
+    index_col,
+    metadata_cast_BGC_file_extension,
+)
+
+Metadata_geographic_coordinates_raw_pd = du.load_data(
+    metadata_geographic_coordinates_file_name,
+    index_col,
+    metadata_environmental_file_extension,
+)
+```
+
+Primer análisis de los metadatos cargados, mostrando la forma de los dataframes y algunas de sus filas.
+```{python}
+print("Metadata cast BGC shape: ", str(Metadata_cast_BGC_raw_pd.shape))
+Metadata_cast_BGC_raw_pd.head(5)
+```
+
+```{python}
+columns_names_object_cast_BGC = du.get_column_names_and_object_types(
+    Metadata_cast_BGC_raw_pd
+)
+columns_names_object_cast_BGC
+```
+
+```{python}
+print("Metadata geographic coordinates shape: ", str(Metadata_geographic_coordinates_raw_pd.shape))
+Metadata_geographic_coordinates_raw_pd.head(5)
+```
+
+```{python}
+columns_names_object_geographic_coordinates = du.get_column_names_and_object_types(
+    Metadata_geographic_coordinates_raw_pd
+)
+columns_names_object_geographic_coordinates
+```
+
+Eliminar columnas irrelevantes si es necesario.
+```{python}
+Metadata_cast_BGC_raw_pd.drop(
+    columns=["SAMEA ID", "Depth ID", "datetime", "lon_cast", "lat_cast"], inplace=True
+)
+Metadata_geographic_coordinates_raw_pd.drop(
+    columns=["Mission", "Date (yyyymmdd)"], inplace=True
+)
+```
+
+Encontrar valores faltantes en los metadatos.
+```{python}
+missing_cast_BGC = du.check_missing_values(Metadata_cast_BGC_raw_pd)
+print("Missing values in Metadata cast BGC:\n", missing_cast_BGC)
+```
+
+```{python}
+missing_geographic_coordinates = du.check_missing_values(
+    Metadata_geographic_coordinates_raw_pd
+)
+print(
+    "Missing values in Metadata geographic coordinates:\n",
+    missing_geographic_coordinates,
+)
+```
+
+Eliminar columnas con valores faltantes si es necesario.
+```{python}
+Metadata_cast_BGC_raw_pd.drop(columns=["Nitrous oxide [nM]"], inplace=True)
+```
+
+Renombrar columnas para mayor claridad si es necesario.
+```{python}
+Metadata_cast_BGC_raw_pd.columns = Metadata_cast_BGC_raw_pd.columns.str.lower()
+Metadata_geographic_coordinates_raw_pd.columns = Metadata_geographic_coordinates_raw_pd.columns.str.lower()
+```
+
+```{python}
+rename_columns_dict_cast_bgc = {
+    "sample id": "sample_id",
+    "depth [m]": "depth_m",
+    "temperature [ºc]": "temperature_[c]",
+    "salinity [psu] ": "salinity_[psu]",
+    "density [kg/m3]": "density_[kg/m3]",
+    "oxygen [ml/l]": "oxygen_[ml/l]",
+    "oxygen [%]": "oxygen_[%]",
+    "fluorescence [mg/m3]": "fluorescence_[mg/m3]",
+    "orthophosphate [um]": "orthophosphate_[um]",
+    "silicic acid [um]": "silicic_acid_[um]",
+    "nitrite [um]": "nitrite_[um]",
+    "nitrates  [um]": "nitrates_[um]",
+    "nitrate [um]": "nitrate_[um]",
+    "n/p ratio": "n_p_ratio",
+    "nitrous oxide [nm]": "nitrous_oxide_[nm]",
+    "datetime": "datetime",
+    "year": "year",
+    "month": "month",
+    "day": "day",
+    "hour": "hour",
+    "minute": "minute",
+    "second": "second",
+    "depth level": "depth_level",
+    "oxygen level": "oxygen_level",
+    "biogeographical units": "biogeographical_units",
+    "freshwater inputs": "freshwater_inputs",
+    "distance from coast (km)": "distance_from_coast_[km]",
+    "oxy_depth": "oxy_depth",
+    "oxy_simple": "oxy_simple",
+}
+Metadata_cast_BGC_raw_pd.rename(columns=rename_columns_dict_cast_bgc, inplace=True)
+```
+
+```{python}
+rename_columns_dict_geographic_coordinates = {
+    "longitude": "longitude",
+    "latitude": "latitude",
+    "utm zone": "utm_zone",
+    "longitude (m e)": "longitude_[m_e]",
+    "latitude (m s)": "latitude_[m_s]",
+}
+
+Metadata_geographic_coordinates_raw_pd.rename(
+    columns=rename_columns_dict_geographic_coordinates, inplace=True
+)
+```
+
+Arreglar formatos de columnas que tienen ',' en lugar de '.' como separador decimal.
+```{python}
+columns_to_transform_cast_BGC = [
+    col for col in Metadata_cast_BGC_raw_pd.columns if col.endswith("]")
+]
+Metadata_cast_BGC_raw_pd = du.replace_comas_with_dots(
+    Metadata_cast_BGC_raw_pd, columns_to_transform_cast_BGC
+)
+```
+
+```{python}
+columns_to_transform_coordinates = Metadata_geographic_coordinates_raw_pd.select_dtypes(
+    include=["object"]
+).columns
+columns_to_transform_coordinates = [
+    col
+    for col in columns_to_transform_coordinates
+    if col not in ["utm_zone", "station"]
+]
+Metadata_geographic_coordinates_raw_pd = du.replace_comas_with_dots(
+    Metadata_geographic_coordinates_raw_pd, columns_to_transform_coordinates
+)
+```
+
+Guardar los metadatos procesados para su uso posterior.
+```{python}
+METADATA_PROCESSED_DIR = "processed_metadata/"
+du.save_data(
+    Metadata_cast_BGC_raw_pd, METADATA_PROCESSED_DIR + "Metadata_cast_BGC_processed"
+)
+du.save_data(
+    Metadata_geographic_coordinates_raw_pd,
+    METADATA_PROCESSED_DIR + "Metadata_geographic_coordinates_processed",
+)
+```
+
+Agregar metadatos en una única tabla.
+```{python}
+Metadata_aggregated_pd = Metadata_cast_BGC_raw_pd.copy()
+for index, row in Metadata_aggregated_pd.iterrows():
+    station = row["sample_id"].split("_")[0]
+    matching_geo_data = Metadata_geographic_coordinates_raw_pd[
+        Metadata_geographic_coordinates_raw_pd["station"] == station
+    ]
+    if not matching_geo_data.empty:
+        for col in matching_geo_data.columns:
+            Metadata_aggregated_pd.at[index, col] = matching_geo_data.iloc[0][col]
+```
+
+Guardar los metadatos agregados.
+```{python}
+du.save_data(Metadata_aggregated_pd, METADATA_PROCESSED_DIR + "Metadata_aggregated")
+```
+
+---

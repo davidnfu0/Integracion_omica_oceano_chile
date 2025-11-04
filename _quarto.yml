@@ -3,13 +3,15 @@ project:
   render:
     - index.qmd
     - reports/data_pipeline.qmd
+    - reports/metadata_pipeline.qmd
+    - reports/metadata_EDA.qmd
+    - reports/clr.qmd
     - reports/pca.qmd
     - reports/mofa.qmd
-    - reports/mofa_pca_analysis.qmd
   output-dir: docs
 
 website:
-  title: "Proyecto"
+  title: "Integración omica oceano Chile"
 
 format:
   html:
@@ -17,5 +19,5 @@ format:
     fig-format: svg
 
 execute:
-  kernel: MOFA      
+  kernel: Omic_Integration
 

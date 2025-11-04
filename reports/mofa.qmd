@@ -2,68 +2,78 @@
 title: MOFA
 jupyter: 
   kernelspec:
-    name: "MOFA"
+    name: "Omic_Integration"
     language: "python"
-    display_name: "MOFA"
+    display_name: "Omic_Integration"
 ---
+## Resumen
+En este informe, se realiza una reducción de dimensionalidad utilizando MOFA (Multi-Omics Factor Analysis) sobre los conjuntos de datos principales.
 
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
 
+Importar librerías y módulos necesarios.
 ```{python}
 import pandas as pd
-import scanpy as sc
 import muon as mu
 import mofax as mofa
 import matplotlib.pyplot as plt
-import os
+from src.mofa_utils import create_mudata
+import src.data_utils as du
 ```
 
+Crear el directorio para guardar los datos procesados.
 ```{python}
-data_dir = "../data/"
-M_biogeochemical_genes = sc.AnnData(
-    pd.read_csv(f"{data_dir}M_biogeochemical_genes.csv", index_col=0)
-)
-M_metabolic_genes = sc.AnnData(
-    pd.read_csv(f"{data_dir}M_metabolic_genes.csv", index_col=0)
-)
-M_Taxa_order = sc.AnnData(pd.read_csv(f"{data_dir}M_Taxa_order.csv", index_col=0))
-M_Taxa_phylum = sc.AnnData(pd.read_csv(f"{data_dir}M_Taxa_phylum.csv", index_col=0))
-mdata = mu.MuData(
-    {
-        "biogeochemical_genes": M_biogeochemical_genes,
-        "metabolic_genes": M_metabolic_genes,
-        "Taxa_order": M_Taxa_order,
-        "Taxa_phylum": M_Taxa_phylum,
-    }
+mdata = create_mudata(
+    "M_biogeochemical_genes_clr",
+    "M_metabolic_genes_clr",
+    "M_taxa_order_clr",
+    "M_taxa_phylum_clr",
 )
 mdata
 ```
 
+Crear y carpeta para guardar modelos en caso de que no exista.
 ```{python}
-model_dir = "../models/"
-model_path = f"{model_dir}mofa_model.hdf5"
-if not os.path.exists(model_path):
+MODEL_DIR = "../models/"
+MODEL_PATH = f"{MODEL_DIR}mofa_model.hdf5"
+if not os.path.exists(MODEL_DIR):
+    os.makedirs(MODEL_DIR, exist_ok=True)
+```
+
+Construir modelo MOFA si no existe.
+```{python}
+if not os.path.exists(MODEL_PATH):
     mu.tl.mofa(
         mdata,
         use_obs="union",
-        n_factors=15,
-        convergence_mode="medium",
-        outfile=model_path,
+        n_factors=20,
+        likelihoods=["gaussian", "gaussian", "gaussian", "gaussian"],
+        convergence_mode="slow",
+        outfile=MODEL_PATH,
     )
+model = mofa.mofa_model(MODEL_PATH)
 ```
 
-```{python}
-model = mofa.mofa_model(f"{model_dir}mofa_model.hdf5")
-```
-
+Obtener matriz de factores y guardarla en un DataFrame.
 ```{python}
 Z = model.get_factors()
 Z_df = pd.DataFrame(Z)
 Z_df.columns = [f"Factor_{i + 1}" for i in range(Z_df.shape[1])]
 Z_df.index = mdata.obs_names
-Z_df.to_csv(f"{data_dir}M_factors.csv")
 Z_df.head(3)
 ```
 
+Guardar matriz de factores.
+```{python}
+MOFA_DATA_DIR = "../data/MOFA_dir/"
+Z_df.to_csv(f"{MOFA_DATA_DIR}M_factors.csv")
+```
+
+Analizar la varianza explicada por cada factor y vista.
 ```{python}
 variance_explained = model.get_r2()
 variance_explained.drop(columns=["Group"], inplace=True)
@@ -73,10 +83,15 @@ variance_explained["Factor"] = variance_explained["Factor"].str.replace(
 variance_explained_pivot = variance_explained.pivot(
     index="Factor", columns="View", values="R2"
 )
-variance_explained_pivot.to_csv(f"{data_dir}M_variance_explained.csv")
 variance_explained_pivot
 ```
 
+Guardar la varianza explicada.
+```{python}
+variance_explained_pivot.to_csv(f"{MOFA_DATA_DIR}M_variance_explained.csv")
+```
+
+Visualizar la varianza explicada por cada factor y vista.
 ```{python}
 plt.figure(figsize=(10, 6))
 plt.imshow(variance_explained_pivot, aspect="auto", cmap="Blues")
@@ -94,48 +109,42 @@ plt.title("Variance Explained per Factor and View")
 plt.tight_layout()
 ```
 
+Obtener los pesos de las variables para cada vista.
 ```{python}
 W = model.get_weights()
 
-n_bio = M_biogeochemical_genes.n_vars
-n_met = M_metabolic_genes.n_vars
-n_order = M_Taxa_order.n_vars
-n_phylum = M_Taxa_phylum.n_vars
+#n_bio = M_biogeochemical_genes.n_vars
+#n_met = M_metabolic_genes.n_vars
+#n_order = M_Taxa_order.n_vars
+#n_phylum = M_Taxa_phylum.n_vars
 
-idx_bio = slice(0, n_bio)
-idx_met = slice(n_bio, n_bio + n_met)
-idx_order = slice(n_bio + n_met, n_bio + n_met + n_order)
-idx_phylum = slice(n_bio + n_met + n_order, n_bio + n_met + n_order + n_phylum)
+#idx_bio = slice(0, n_bio)
+#idx_met = slice(n_bio, n_bio + n_met)
+#idx_order = slice(n_bio + n_met, n_bio + n_met + n_order)
+#idx_phylum = slice(n_bio + n_met + n_order, n_bio + n_met + n_order + n_phylum)
 
-W_bio = W[idx_bio, :]
-W_met = W[idx_met, :]
-W_order = W[idx_order, :]
-W_phylum = W[idx_phylum, :]
+#W_bio = W[idx_bio, :]
+#W_met = W[idx_met, :]
+#W_order = W[idx_order, :]
+#W_phylum = W[idx_phylum, :]
+```
 
-df_W_biogeochemical_genes = pd.DataFrame(
-    W_bio,
-    index=M_biogeochemical_genes.var_names,
-    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+Guardar los pesos de las variables para cada vista.
+```{python}
+"""
+pd.DataFrame(W_bio, index=M_biogeochemical_genes.var_names).to_csv(
+    f"{MOFA_DATA_DIR}M_weights_biogeochemical_genes.csv"
 )
-df_W_biogeochemical_genes.to_csv(f"{data_dir}W_biogeochemical_genes.csv")
-df_W_metabolic_genes = pd.DataFrame(
-    W_met,
-    index=M_metabolic_genes.var_names,
-    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+pd.DataFrame(W_met, index=M_metabolic_genes.var_names).to_csv(
+    f"{MOFA_DATA_DIR}M_weights_metabolic_genes.csv"
 )
-df_W_metabolic_genes.to_csv(f"{data_dir}W_metabolic_genes.csv")
-df_W_Taxa_order = pd.DataFrame(
-    W_order,
-    index=M_Taxa_order.var_names,
-    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+pd.DataFrame(W_order, index=M_Taxa_order.var_names).to_csv(
+    f"{MOFA_DATA_DIR}M_weights_taxa_order.csv"
 )
-df_W_Taxa_order.to_csv(f"{data_dir}W_Taxa_order.csv")
-df_W_Taxa_phylum = pd.DataFrame(
-    W_phylum,
-    index=M_Taxa_phylum.var_names,
-    columns=[f"Factor_{i + 1}" for i in range(W.shape[1])],
+pd.DataFrame(W_phylum, index=M_Taxa_phylum.var_names).to_csv(
+    f"{MOFA_DATA_DIR}M_weights_taxa_phylum.csv"
 )
-df_W_Taxa_phylum.to_csv(f"{data_dir}W_Taxa_phylum.csv")
+"""
 ```
 
 ___

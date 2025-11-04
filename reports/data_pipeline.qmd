@@ -1,70 +1,99 @@
 ---
-title: Data pipeline
+title: Data Pipeline
 jupyter: 
   kernelspec:
-    name: "MOFA"
+    name: "Omic_Integration"
     language: "python"
-    display_name: "MOFA"
+    display_name: "Omic_Integration"
 ---
 
+## Resumen
+En este informe, se detalla el proceso de carga y análisis inicial de los conjuntos de datos principales utilizados en el proyecto.
 
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
 ```{python}
 import pandas as pd
+import src.data_utils as du
 ```
 
+Definir los nombres de los archivos de datos, su columna de índices y su extensión.
 ```{python}
-data_dir = "../data/"
-M_biogeochemical_genes_raw_pd = pd.read_csv(
-    f"{data_dir}{'M_biogeochemical_genes_raw'}.tsv", sep="\t", index_col="TSC"
-)
-M_metabolic_genes_raw_pd = pd.read_csv(
-    f"{data_dir}{'M_metabolic_genes_raw'}.tsv", sep="\t", index_col="TSC"
-)
-M_Taxa_order_pd = pd.read_csv(
-    f"{data_dir}{'Matriz_Taxa-order'}.tsv", sep="\t", index_col="Taxonomy"
-).T
-M_Taxa_phylum_pd = pd.read_csv(
-    f"{data_dir}{'Matriz_Taxa-phylum'}.tsv", sep="\t", index_col="Taxonomy"
-).T
-M_all = pd.concat(
-    [
-        M_biogeochemical_genes_raw_pd,
-        M_metabolic_genes_raw_pd,
-        M_Taxa_order_pd,
-        M_Taxa_phylum_pd,
-    ],
-    axis=1,
-    join="inner",
-)
+DATA_RAW_DIR = "raw_data/"
+
+biogeochemical_genes_file_name = DATA_RAW_DIR + "M_biogeochemical_genes_raw"
+biogeochemical_genes_index_col = "TSC"
+biogeochemical_genes_file_extension = "tsv"
+
+metabolic_genes_file_name = DATA_RAW_DIR + "M_metabolic_genes_raw"
+metabolic_genes_index_col = "TSC"
+metabolic_genes_file_extension = "tsv"
+
+taxa_order_file_name = DATA_RAW_DIR + "M_taxa_order_raw"
+taxa_order_index_col = "Taxonomy"
+taxa_order_file_extension = "tsv"
+
+taxa_phylum_file_name = DATA_RAW_DIR + "M_taxa_phylum_raw"
+taxa_phylum_index_col = "Taxonomy"
+taxa_phylum_file_extension = "tsv"
 ```
 
+Cargar los datos en dataframes de pandas.
 ```{python}
-print("Shape: ", str(M_all.shape))
-M_all.to_csv(f"{data_dir}M_all.csv")
-M_all.head(3)
+M_biogeochemical_genes_raw_pd = du.load_data(
+    biogeochemical_genes_file_name,
+    biogeochemical_genes_index_col,
+    biogeochemical_genes_file_extension,
+)
+
+M_metabolic_genes_raw_pd = du.load_data(
+    metabolic_genes_file_name, metabolic_genes_index_col, metabolic_genes_file_extension
+)
+
+M_taxa_order_pd = du.load_data(
+    taxa_order_file_name, taxa_order_index_col, taxa_order_file_extension
+).T
+
+M_taxa_phylum_pd = du.load_data(
+    taxa_phylum_file_name, taxa_phylum_index_col, taxa_phylum_file_extension
+).T
 ```
 
+Primer análisis de los datos cargados, mostrando la forma de los dataframes y algunas de sus filas.
 ```{python}
 print("Biogeochemical genes shape: ", str(M_biogeochemical_genes_raw_pd.shape))
-M_biogeochemical_genes_raw_pd.to_csv(f"{data_dir}M_biogeochemical_genes.csv")
-M_biogeochemical_genes_raw_pd.head(3)
+M_biogeochemical_genes_raw_pd.head(5)
 ```
 
 ```{python}
 print("Metabolic genes shape: ", str(M_metabolic_genes_raw_pd.shape))
-M_metabolic_genes_raw_pd.to_csv(f"{data_dir}M_metabolic_genes.csv")
-M_metabolic_genes_raw_pd.head(3)
+M_metabolic_genes_raw_pd.head(5)
 ```
 
 ```{python}
-print("Taxa order shape: ", str(M_Taxa_order_pd.shape))
-M_Taxa_order_pd.to_csv(f"{data_dir}M_Taxa_order.csv")
-M_Taxa_order_pd.head(3)
+print("Taxa order shape: ", str(M_taxa_order_pd.shape))
+M_taxa_order_pd.head(5)
 ```
 
 ```{python}
-print("Taxa phylum shape: ", str(M_Taxa_phylum_pd.shape))
-M_Taxa_phylum_pd.to_csv(f"{data_dir}M_Taxa_phylum.csv")
-M_Taxa_phylum_pd.head(3)
+print("Taxa phylum shape: ", str(M_taxa_phylum_pd.shape))
+M_taxa_phylum_pd.head(5)
 ```
 
+Guardar los dataframes como archivos CSV para su uso posterior.
+```{python}
+DATA_PROCESSED_DIR = "processed_data/"
+du.save_data(
+    M_biogeochemical_genes_raw_pd, DATA_PROCESSED_DIR + "M_biogeochemical_genes"
+)
+du.save_data(M_metabolic_genes_raw_pd, DATA_PROCESSED_DIR + "M_metabolic_genes")
+du.save_data(M_taxa_order_pd, DATA_PROCESSED_DIR + "M_taxa_order")
+du.save_data(M_taxa_phylum_pd, DATA_PROCESSED_DIR + "M_taxa_phylum")
+```
+
+---

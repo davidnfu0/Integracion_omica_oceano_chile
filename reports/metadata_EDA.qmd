@@ -1,0 +1,55 @@
+---
+title: Metadata Exploratory Data Analysis
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+En este informe, se realiza un análisis exploratorio de los metadatos cargados previamente en el proyecto.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import src.data_utils as du
+```
+
+Cargar los metadatos en dataframes de pandas.
+```{python}
+PROCESSED_METADATA_DIR = "processed_metadata/"
+metadata_aggregated_file_name = PROCESSED_METADATA_DIR + "Metadata_aggregated"
+index_col = 0
+metadata_aggregated_file_extension = "csv"
+Metadata_aggregated_pd = du.load_data(
+    metadata_aggregated_file_name,
+    index_col,
+    metadata_aggregated_file_extension,
+)
+```
+
+Distribución en histograma de las variables numéricas en los metadatos.
+```{python}
+Metadata_aggregated_pd.hist(bins=30, figsize=(15, 15))
+plt.suptitle("Histograms of Numerical Metadata Variables")
+plt.show()
+```
+
+Análisis de las variables categóricas en los metadatos.
+```{python}
+categorical_columns = Metadata_aggregated_pd.select_dtypes(include=["object"]).columns
+for col in categorical_columns:
+    print(f"Value counts for column '{col}':")
+    print(Metadata_aggregated_pd[col].value_counts())
+    print("\n")
+```
+
+---
