@@ -4,4 +4,5 @@ listing:
   contents: reports
   sort: "date desc"
   type: default
+  fields: [date, title, description, author]
 ---

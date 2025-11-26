@@ -42,6 +42,10 @@ MODEL_DIR = "../models/"
 MODEL_PATH = f"{MODEL_DIR}mofa_model.hdf5"
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR, exist_ok=True)
+M_biogeochemical_genes = mdata.mod["biogeochemical_genes"]
+M_metabolic_genes = mdata.mod["metabolic_genes"]
+M_Taxa_order = mdata.mod["taxa_order"]
+M_Taxa_phylum = mdata.mod["taxa_phylum"]
 ```
 
 Construir modelo MOFA si no existe.
@@ -113,38 +117,36 @@ Obtener los pesos de las variables para cada vista.
 ```{python}
 W = model.get_weights()
 
-#n_bio = M_biogeochemical_genes.n_vars
-#n_met = M_metabolic_genes.n_vars
-#n_order = M_Taxa_order.n_vars
-#n_phylum = M_Taxa_phylum.n_vars
+n_bio = M_biogeochemical_genes.n_vars
+n_met = M_metabolic_genes.n_vars
+n_order = M_Taxa_order.n_vars
+n_phylum = M_Taxa_phylum.n_vars
 
-#idx_bio = slice(0, n_bio)
-#idx_met = slice(n_bio, n_bio + n_met)
-#idx_order = slice(n_bio + n_met, n_bio + n_met + n_order)
-#idx_phylum = slice(n_bio + n_met + n_order, n_bio + n_met + n_order + n_phylum)
+idx_bio = slice(0, n_bio)
+idx_met = slice(n_bio, n_bio + n_met)
+idx_order = slice(n_bio + n_met, n_bio + n_met + n_order)
+idx_phylum = slice(n_bio + n_met + n_order, n_bio + n_met + n_order + n_phylum)
 
-#W_bio = W[idx_bio, :]
-#W_met = W[idx_met, :]
-#W_order = W[idx_order, :]
-#W_phylum = W[idx_phylum, :]
+W_bio = W[idx_bio, :]
+W_met = W[idx_met, :]
+W_order = W[idx_order, :]
+W_phylum = W[idx_phylum, :]
 ```
 
 Guardar los pesos de las variables para cada vista.
 ```{python}
-"""
 pd.DataFrame(W_bio, index=M_biogeochemical_genes.var_names).to_csv(
-    f"{MOFA_DATA_DIR}M_weights_biogeochemical_genes.csv"
+    f"{MOFA_DATA_DIR}W_biogeochemical_genes.csv"
 )
 pd.DataFrame(W_met, index=M_metabolic_genes.var_names).to_csv(
-    f"{MOFA_DATA_DIR}M_weights_metabolic_genes.csv"
+    f"{MOFA_DATA_DIR}W_metabolic_genes.csv"
 )
 pd.DataFrame(W_order, index=M_Taxa_order.var_names).to_csv(
-    f"{MOFA_DATA_DIR}M_weights_taxa_order.csv"
+    f"{MOFA_DATA_DIR}W_taxa_order.csv"
 )
 pd.DataFrame(W_phylum, index=M_Taxa_phylum.var_names).to_csv(
-    f"{MOFA_DATA_DIR}M_weights_taxa_phylum.csv"
+    f"{MOFA_DATA_DIR}W_taxa_phylum.csv"
 )
-"""
 ```
 
 ___

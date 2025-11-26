@@ -1,0 +1,265 @@
+---
+title: Clustering Execution & Optimization
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+Optimización de hiperparámetros  y ejecución de algoritmos de clustering sobre espacios MOFA y UMAP. 
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import src.data_utils as du
+import src.clustering_utils as cu
+import src.plots as p
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+```
+
+Importar datos procesados de MOFA y UMAP.
+```{python}
+DATA_DIR = "../data/"
+
+# Factores de MOFA
+m_factors = du.load_data(DATA_DIR + "MOFA_dir/M_factors", index_col=0)
+
+# Caracteristicas de UMAP
+m_umap = du.load_data(DATA_DIR + "processed_data/M_umap", index_col=0)
+```
+
+## Ejecución de K-Means
+
+### Datos MOFA
+
+Selección de Hyperparámetros óptimos
+```{python}
+mofa_kmeans_res = cu.run_kmeans_optimization(m_factors, k_range=range(2, 12))
+opt_k_mofa = mofa_kmeans_res["optimal_k"]
+
+print(f"MOFA Optimal k detected: {opt_k_mofa}")
+
+p.plot_elbow_silhouette(
+    mofa_kmeans_res["k_range"],
+    mofa_kmeans_res["inertias"],
+    mofa_kmeans_res["silhouettes"],
+    opt_k_mofa,
+    "MOFA Clustering",
+)
+```
+
+Matriz de proximidad de los clusters
+```{python}
+labels_mofa = mofa_kmeans_res["results"][8]["labels"]
+m_factors_ordered = m_factors.copy()
+m_factors_ordered["Cluster"] = labels_mofa
+m_factors_ordered = m_factors_ordered.sort_values("Cluster")
+
+dist_matrix = cu.get_proximity_matrix(m_factors_ordered.drop(columns="Cluster"))
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(dist_matrix, cmap="viridis", xticklabels=False, yticklabels=False)
+plt.title("Proximity Matrix (Sorted by K-Means MOFA Cluster)")
+plt.show()
+```
+
+### Datos UMAP
+
+Selección de Hyperparámetros óptimos
+```{python}
+umap_kmeans_res = cu.run_kmeans_optimization(m_umap, k_range=range(2, 12))
+opt_k_umap = umap_kmeans_res["optimal_k"]
+selected_k_umap = 8
+
+print(f"UMAP Optimal k detected: {opt_k_umap}")
+
+p.plot_elbow_silhouette(
+    umap_kmeans_res["k_range"],
+    umap_kmeans_res["inertias"],
+    umap_kmeans_res["silhouettes"],
+    selected_k_umap,
+    "UMAP Clustering",
+)
+```
+
+Matriz de proximidad de los clusters
+```{python}
+labels_umap = umap_kmeans_res["results"][8]["labels"]
+m_umap_ordered = m_umap.copy()
+m_umap_ordered["Cluster"] = labels_umap
+m_umap_ordered = m_umap_ordered.sort_values("Cluster")
+
+dist_matrix = cu.get_proximity_matrix(m_umap_ordered.drop(columns="Cluster"))
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(dist_matrix, cmap="viridis", xticklabels=False, yticklabels=False)
+plt.title("Proximity Matrix (Sorted by K-Means UMAP Cluster)")
+plt.show()
+```
+
+## Ejecución de GMM
+
+### Datos MOFA
+
+Selección de Hyperparámetros óptimos
+```{python}
+gmm_res = cu.optimize_gmm(m_factors, k_range=range(2, 12))
+p.plot_gmm_optimization(
+    gmm_res["k_range"], gmm_res["bics"], gmm_res["aics"], gmm_res["silhouettes"]
+)
+best_k_gmm = gmm_res["k_range"][np.argmin(gmm_res["bics"])]
+print(f"Best K based on BIC: {best_k_gmm}")
+
+k_gmm_mofa = 8  # Seleccionado manualmente
+labels_gmm_opt = gmm_res["results"][k_gmm_mofa]["labels"]
+```
+
+Matriz de proximidad de los clusters
+```{python}
+m_factors_ordered_gmm = m_factors.copy()
+m_factors_ordered_gmm["Cluster"] = labels_gmm_opt
+m_factors_ordered_gmm = m_factors_ordered_gmm.sort_values("Cluster")
+dist_matrix_gmm = cu.get_proximity_matrix(
+    m_factors_ordered_gmm.drop(columns="Cluster")
+)
+plt.figure(figsize=(8, 6))
+sns.heatmap(dist_matrix_gmm, cmap="viridis", xticklabels=False, yticklabels=False)
+plt.title("Proximity Matrix (Sorted by GMM MOFA Cluster)")
+plt.show()
+```
+
+### Datos UMAP
+
+Selección de Hyperparámetros óptimos
+```{python}
+gmm_umap_res = cu.optimize_gmm(m_umap, k_range=range(2, 12))
+p.plot_gmm_optimization(
+    gmm_umap_res["k_range"], gmm_umap_res["bics"], gmm_umap_res["aics"], gmm_umap_res["silhouettes"]
+)
+best_k_gmm_umap = gmm_umap_res["k_range"][np.argmin(gmm_umap_res["bics"])]
+print(f"Best K based on BIC: {best_k_gmm_umap}")
+k_gmm_umap = 8  # Seleccionado manualmente
+labels_gmm_umap_opt = gmm_umap_res["results"][k_gmm_umap]["labels"]
+```
+
+Matriz de proximidad de los clusters
+```{python}
+m_umap_ordered_gmm = m_umap.copy()
+m_umap_ordered_gmm["Cluster"] = labels_gmm_umap_opt
+m_umap_ordered_gmm = m_umap_ordered_gmm.sort_values("Cluster")
+dist_matrix_gmm_umap = cu.get_proximity_matrix(
+    m_umap_ordered_gmm.drop(columns="Cluster")
+)
+plt.figure(figsize=(8, 6))
+sns.heatmap(dist_matrix_gmm_umap, cmap="viridis", xticklabels=False, yticklabels=False)
+plt.title("Proximity Matrix (Sorted by GMM UMAP Cluster)")
+plt.show()
+```
+
+## Ejecución de DBSCAN
+
+### Datos MOFA
+
+Selección de Hyperparámetros óptimos
+```{python}
+eps_candidates = np.arange(0.1, 2.0, 0.1)
+min_samples_candidates = [3, 5, 10]
+
+dbscan_table = cu.grid_search_dbscan(m_factors, eps_candidates, min_samples_candidates)
+
+dbscan_table_filtered = dbscan_table[
+    (dbscan_table["n_clusters"] > 1) & (dbscan_table["noise_ratio"] < 1)
+].sort_values("silhouette", ascending=False)
+
+display(dbscan_table_filtered.head(10))
+```
+
+```{python}
+k_neighbors = 5
+distances = cu.calculate_k_distance(m_factors, k=k_neighbors)
+p.plot_k_distance_curve(distances, k=k_neighbors)
+```
+
+```{python}
+labels_dbscan_opt = cu.run_dbscan(m_factors, eps=4, min_samples=5)["labels"]
+```
+
+Matriz de proximidad de los clusters
+```{python}
+m_factors_ordered_dbscan = m_factors.copy()
+m_factors_ordered_dbscan["Cluster"] = labels_dbscan_opt
+m_factors_ordered_dbscan = m_factors_ordered_dbscan.sort_values("Cluster")
+dist_matrix_dbscan = cu.get_proximity_matrix(
+    m_factors_ordered_dbscan.drop(columns="Cluster")
+)
+plt.figure(figsize=(8, 6))
+sns.heatmap(dist_matrix_dbscan, cmap="viridis", xticklabels=False, yticklabels=False)
+plt.title("Proximity Matrix (Sorted by DBSCAN MOFA Cluster)")
+plt.show()
+```
+
+### Datos UMAP
+Selección de Hyperparámetros óptimos
+```{python}
+eps_candidates = np.arange(0.1, 2.0, 0.1)
+min_samples_candidates = [3, 5, 10]
+dbscan_umap_table = cu.grid_search_dbscan(m_umap, eps_candidates, min_samples_candidates)
+dbscan_umap_table_filtered = dbscan_umap_table[
+    (dbscan_umap_table["n_clusters"] > 1) & (dbscan_umap_table["noise_ratio"] < 1)
+].sort_values("silhouette", ascending=False)
+display(dbscan_umap_table_filtered.head(10))
+```
+
+```{python}
+k_neighbors = 5
+distances_umap = cu.calculate_k_distance(m_umap, k=k_neighbors)
+p.plot_k_distance_curve(distances_umap, k=k_neighbors)
+```
+
+```{python}
+labels_dbscan_umap_opt = cu.run_dbscan(m_umap, eps=0.4, min_samples=5)["labels"]
+```
+
+Matriz de proximidad de los clusters
+```{python}
+m_umap_ordered_dbscan = m_umap.copy()
+m_umap_ordered_dbscan["Cluster"] = labels_dbscan_umap_opt
+m_umap_ordered_dbscan = m_umap_ordered_dbscan.sort_values("Cluster")
+dist_matrix_dbscan_umap = cu.get_proximity_matrix(
+    m_umap_ordered_dbscan.drop(columns="Cluster")
+)
+plt.figure(figsize=(8, 6))
+sns.heatmap(dist_matrix_dbscan_umap, cmap="viridis", xticklabels=False, yticklabels=False)
+plt.title("Proximity Matrix (Sorted by DBSCAN UMAP Cluster)")
+plt.show()
+```
+
+## Guardar mejores modelos de clustering
+
+```{python}
+# OPCIONES DISPONIBLES:
+# labels_kmeans_opt / labels_umap_kmeans_opt
+# labels_gmm_opt / labels_gmm_umap_opt
+# labels_dbscan_opt / labels_dbscan_umap_opt
+
+CLUTERING_DIR = DATA_DIR + "clustering_dir/"
+selected_models = {
+    "GMM_Opt": labels_gmm_opt,
+    "GMM_UMAP_Opt": labels_gmm_umap_opt,
+}
+for model_name, labels in selected_models.items():
+    df_selected = pd.DataFrame(labels, index=m_factors.index, columns=["Cluster"])
+    du.save_data(df_selected, CLUTERING_DIR + f"selected_clusters_{model_name}")
+```
+
+____

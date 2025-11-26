@@ -1,0 +1,121 @@
+---
+title: Metadata prediction Analysis
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+Entrenamiento de modelos supervisados para predecir variables de metadata a partir de los factores latentes obtenidos por MOFA. Evaluación del desempeño de los modelos y análisis de características importantes.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import numpy as np
+import src.data_utils as du
+import src.prediction_utils as pred
+import src.plots as p
+```
+
+Importar datos procesados de MOFA y metadata.
+```{python}
+DATA_DIR = "../data/"
+m_factors = du.load_data(DATA_DIR + "MOFA_dir/M_factors", index_col=0)
+metadata = du.load_data(DATA_DIR + "processed_metadata/Metadata_aggregated", index_col=1)
+```
+
+Seleccionar variable objetivo y hyperparámetros del modelo.
+```{python}
+reg_params = {
+    "n_estimators": [100, 200],
+    "max_depth": [10, 20, None],
+    "min_samples_leaf": [1, 2, 4],
+}
+
+clf_params = {
+    "n_estimators": [100, 200],
+    "max_depth": [10, None],
+    "criterion": ["gini", "entropy"],
+    "min_samples_split": [2, 5],
+}
+
+target_columns = [
+    "depth_m",
+    "temperature_[c]",
+    "oxygen_[ml/l]",
+    "oxygen_level",
+]
+valid_targets = [c for c in target_columns if c in metadata.columns]
+```
+
+```{python}
+for target in valid_targets:
+    print(f"=== Analizando: {target} ===")
+    y = metadata[target]
+    
+    is_numeric = pd.api.types.is_numeric_dtype(y)
+    num_unique = y.nunique()
+    
+    if is_numeric and num_unique > 10:
+        res = pred.tune_metadata_regressor(m_factors, y, param_grid=reg_params)
+        
+        if "error" in res:
+            print(f"Skipping: {res['error']}")
+            continue
+            
+        print(f"Mejores Parámetros: {res['best_params']}")
+        print(f"R2 (Test): {res['r2']:.3f} | RMSE: {res['rmse']:.3f}")
+        
+        p.plot_regression_results(res["y_test"], res["y_pred"], target, res["r2"])
+        
+    else:
+        res = pred.tune_metadata_classifier(m_factors, y, param_grid=clf_params)
+        
+        if "error" in res:
+            print(f"Skipping: {res['error']}")
+            continue
+            
+        print(f"Mejores Parámetros: {res['best_params']}")
+        print(f"Accuracy (Test): {res['accuracy']:.3f}")
+        
+        p.plot_confusion_matrix(res["confusion_matrix"], res["classes"], f"CM: {target}")
+
+    imp = pred.get_factor_importance(res["model"], res["feature_names"])
+    p.plot_factor_importance_bar(imp, target, top_n=5)
+    
+    print("\n" + "-"*60 + "\n")
+```
+
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+import src.data_utils as du
+import pandas as pd
+
+# Cargar datos
+m_factors = du.load_data("../data/MOFA_dir/M_factors", index_col=0)
+metadata = du.load_data("../data/processed_metadata/Metadata_aggregated", index_col=0)
+
+print("=== MOFA Indices (Primeros 5) ===")
+print(m_factors.index[:5].tolist())
+
+print("\n=== Metadata Indices (Primeros 5) ===")
+print(metadata.index[:5].tolist())
+
+# Verificar intersección
+common = m_factors.index.intersection(metadata.index)
+print(f"\nTotal Muestras MOFA: {len(m_factors)}")
+print(f"Total Muestras Metadata: {len(metadata)}")
+print(f"Muestras en común (Intersección): {len(common)}")
+
+if len(common) == 0:
+    print("\n⚠️ ALERTA: No hay coincidencias. Revisa si una columna es el índice real.")
+```

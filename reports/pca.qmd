@@ -6,12 +6,14 @@ jupyter:
     language: "python"
     display_name: "Omic_Integration"
 ---
+
 ## Resumen
 En este informe, se realiza un análisis de Componentes Principales (PCA) sobre el conjunto de datos agregado.
 
 Añadir al sistema al ruta al directorio base para importar módulos personalizados.
 ```{python}
 import sys, os
+
 sys.path.append(os.path.abspath(".."))
 ```
 

@@ -1,5 +1,7 @@
 # Integración de datos “ómicos” del océano costero chileno con la ayuda de aprendizaje de máquinas.
 
+Se puede acceder a la pagina del proyecto en: [https://davidnfu0.github.io/Integracion_omica_oceano_chile/](https://davidnfu0.github.io/Integracion_omica_oceano_chile/)
+
 La disponibilidad de datos "ómicos" en el océano costero chileno es limitada. Por lo que, es crucial integrar y analizar los datos existentes para comprender mejor los ecosistemas marinos. El aprendizaje de máquinas es una herramienta que puede ser muy util para obtener información valiosa a partir de estos datos.
 
 Los datos con los que se trabaja en este proyecto son:

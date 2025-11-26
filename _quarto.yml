@@ -8,6 +8,12 @@ project:
     - reports/clr.qmd
     - reports/pca.qmd
     - reports/mofa.qmd
+    - reports/umap.qmd
+    - reports/mofa_pca_analysis.qmd
+    - reports/clustering_execution.qmd
+    - reports/clustering_analysis.qmd
+    - reports/pareto_analysis.qmd
+    - reports/prediction_analysis.qmd
   output-dir: docs
 
 website:

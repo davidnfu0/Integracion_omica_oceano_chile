@@ -1,0 +1,100 @@
+---
+title: Cluster Interpretation & Analysis
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+Análisis de los clusters obtenidos: distribución geográfica, perfiles de metadatos y determinación de características biológicas (Features) determinantes.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import numpy as np
+import src.data_utils as du
+import src.plots as p
+import warnings
+```
+
+Importar datos procesados de MOFA y resultados de clustering.
+```{python}
+selected_clusters = du.load_data(
+    "clustering_dir/selected_clusters_GMM_Opt", index_col=0
+)
+metadata = du.load_data("processed_metadata/Metadata_aggregated", index_col=1)
+m_clr = du.load_data("clr_data/M_clr", index_col=0)
+m_mofa = du.load_data("MOFA_dir/M_factors", index_col=0)
+
+metadata_mofa = metadata.join(selected_clusters)
+m_mofa_clusters = m_mofa.join(selected_clusters)
+```
+
+### Análisis de Distribución Geográfica de Clusters MOFA
+```{python}
+depths = metadata_mofa["depth_m"].unique()
+for depth in depths:
+    metadata_depth = metadata_mofa[metadata_mofa["depth_m"] == depth]
+    p.plot_geo_clusters(
+        metadata_depth,
+        metadata_depth["Cluster"],
+        lat_col="latitude",
+        lon_col="longitude",
+        title="Geographic Distribution of MOFA Clusters at Depth: " + str(depth) + " m",
+        n_clusters=len(metadata_mofa["Cluster"].unique()),
+    )
+```
+
+```{python}
+p.plot_geo_clusters_3d(
+    metadata_mofa,
+    metadata_mofa["Cluster"],
+    lat_col="latitude",
+    lon_col="longitude",
+    depth_col="depth_m",
+    title="3D Geographic Distribution of MOFA Clusters",
+    n_clusters=len(metadata_mofa["Cluster"].unique()),
+)
+```
+
+### Análisis de Perfiles de Metadatos por Cluster MOFA
+```{python}
+warnings.filterwarnings("ignore")
+
+env_vars = [
+  "depth_m",
+  "temperature_[c]",
+  "oxygen_[ml/l]",
+  "salinity_[psu]",
+  "nitrates_[um]",
+  "nitrate_[um]",
+  "orthophosphate_[um]",
+  "silicic_acid_[um]",
+  "distance_from_coast_[km]",
+]
+p.plot_metadata_by_cluster(metadata_mofa, metadata_mofa["Cluster"], env_vars)
+```
+
+### Análisis de Factores Determinantes por Cluster MOFA
+```{python}
+p.scatter_plot_2d(
+    m_mofa_clusters["Factor_1"],
+    m_mofa_clusters["Factor_2"],
+    c=m_mofa_clusters["Cluster"],
+    xlabel="MOFA Factor 1",
+    ylabel="MOFA Factor 2",
+    title="MOFA Factors 1 vs 2 Colored by Cluster",
+    s=30,
+    alpha=0.7,
+)
+```
+
+___

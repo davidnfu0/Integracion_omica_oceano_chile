@@ -1,0 +1,103 @@
+---
+title: Pareto Task Inference Analysis
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+Aplicación del método Pareto TI para identificar arquetipos biológicos y sus tareas asociadas dentro del espacio latente generado por MOFA. Se basa en la teoría de que los fenotipos óptimos bajo trade-offs forman politopos en el espacio de características.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import numpy as np
+import src.data_utils as du
+import src.pareto_utils as pu
+import src.plots as p
+```
+
+Importar datos procesados de MOFA y metadata.
+```{python}
+DATA_DIR = "../data/"
+m_factors = du.load_data(DATA_DIR + "MOFA_dir/M_factors", index_col=0)
+metadata = du.load_data(
+    DATA_DIR + "processed_metadata/Metadata_aggregated", index_col=0
+)
+
+X = np.float32(m_factors.iloc[:, :3].values)
+print(f"Input shape: {X.shape}")
+```
+
+Determinar arquetipos usando Pareto TI
+```{python}
+results_k_list = []
+for k in range(2, 7):
+    res_k = pu.fit_pcha_partipy(X, k=k, max_iter=500, tol=1e-4, delta=0.0)
+    results_k_list.append(
+        {"k": k, "ev": res_k["explained_variance"], "t_ratio": res_k["t_ratio"]}
+    )
+
+results_k_df = pd.DataFrame(results_k_list)
+display(results_k_df)
+p.plot_pareto_ev_curve(results_k_list)
+```
+
+```{python}
+BEST_K = 4
+print(f"BEST_K seleccionado: {BEST_K}")
+```
+
+Ajuste del modelo final
+```{python}
+res_final = pu.fit_pcha_partipy(
+    X,
+    k=BEST_K,
+    max_iter=1000,
+    tol=1e-4,
+    delta=0.4,
+)
+
+archetypes = res_final["archetypes"]
+S_matrix = res_final["S_matrix"]
+
+print("Varianza explicada:", res_final["explained_variance"])
+print("t-ratio:", res_final["t_ratio"])
+```
+
+Visualización del politopo
+```{python}
+p.plot_polytope_3d(X, archetypes, labels=None, title=f"Politopo de Pareto (k={BEST_K})")
+```
+
+Análisis de tareas asociadas a arquetipos
+```{python}
+if "oxygen_[ml/l]" in metadata.columns:
+    enrich_ox = pu.calculate_enrichment(X, archetypes, metadata, "oxygen_[ml/l]")
+    p.plot_enrichment_curves(enrich_ox)
+    display(enrich_ox[["archetype", "p_value", "max_enrichment"]])
+```
+
+```{python}
+if "nitrates_[um]" in metadata.columns:
+    enrich_nit = pu.calculate_enrichment(X, archetypes, metadata, "nitrates_[um]")
+    p.plot_enrichment_curves(enrich_nit)
+    display(enrich_nit[["archetype", "p_value", "max_enrichment"]])
+```
+
+```{python}
+if "temperature_[c]" in metadata.columns:
+    enrich_temp = pu.calculate_enrichment(X, archetypes, metadata, "temperature_[c]")
+    p.plot_enrichment_curves(enrich_temp)
+    display(enrich_temp[["archetype", "p_value", "max_enrichment"]])
+```
+
+___

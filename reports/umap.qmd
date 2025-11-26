@@ -1,0 +1,97 @@
+---
+title: UMAP Analysis
+jupyter: 
+  kernelspec:
+    name: "Omic_Integration"
+    language: "python"
+    display_name: "Omic_Integration"
+---
+
+## Resumen
+En este informe, se aplica UMAP (Uniform Manifold Approximation and Projection) sobre el conjunto de datos agregado (transformado con CLR) para visualizar la estructura global y local de las muestras.
+
+Añadir al sistema al ruta al directorio base para importar módulos personalizados.
+```{python}
+import sys, os
+sys.path.append(os.path.abspath(".."))
+```
+
+Importar librerías y módulos necesarios.
+```{python}
+import pandas as pd
+import numpy as np
+import src.data_utils as du
+import src.umap_utils as uu
+import src.plots as p
+```
+
+Importar datos procesados.
+```{python}
+DATA_DIR = "../data/"
+CLR_DATA_DIR = DATA_DIR + "clr_data/"
+PROCESSED_METADATA_DIR = DATA_DIR + "processed_metadata/"
+PROCESSED_DATA_DIR = DATA_DIR + "processed_data/"
+
+# Cargar datos ómicos
+m_clr = du.load_data(CLR_DATA_DIR + "M_clr", index_col=0)
+
+# Cargar metadatos
+metadata = du.load_data(PROCESSED_METADATA_DIR + "Metadata_aggregated", index_col=0)
+```
+
+Ejecutar UMAP sobre los datos CLR agregados.
+```{python}
+# Definición de hyperparámetros de UMAP
+n_neighbors = 10
+min_dist = 0.1
+random_state = 97
+n_components = 3
+
+# Ejecutar UMAP
+m_umap = uu.run_umap(
+    m_clr,
+    n_neighbors=n_neighbors,
+    min_dist=min_dist,
+    random_state=random_state,
+    n_components=n_components,
+)
+
+# Guardar resultados
+du.save_data(m_umap, PROCESSED_DATA_DIR + "M_umap")
+
+m_umap.head()
+```
+
+Análisis visual básico de resultados UMAP
+```{python}
+p.scatter_plot_3d(
+    m_umap["UMAP_1"],
+    m_umap["UMAP_2"],
+    m_umap["UMAP_3"],
+    xlabel="UMAP 1",
+    ylabel="UMAP 2",
+    title="UMAP 3D Scatter Plot",
+    s=40,
+    alpha=0.7,
+)
+```
+
+Análisis de relación entre UMAP y variables de metadatos
+```{python}
+numerical_columns_metadata = metadata.select_dtypes(
+    include=[np.number]
+).columns.tolist()
+numerical_columns_metadata.remove("day")
+numerical_columns_metadata.remove("hour")
+numerical_columns_metadata.remove("minute")
+numerical_columns_metadata.remove("second")
+numerical_columns_metadata.remove("year")
+numerical_columns_metadata.remove("month")
+columns_metadata = numerical_columns_metadata
+
+p.plot_dim_reduction_metadata(
+    m_umap["UMAP_1"], m_umap["UMAP_2"], metadata, columns_metadata, dim_name="UMAP"
+)
+```
+
+___
